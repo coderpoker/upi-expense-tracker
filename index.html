@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Track your UPI payment expenses, set daily/weekly/monthly budgets, and get smart reminders. Works offline on Android.">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="UPI Tracker">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>UPI Expense Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== Header ===== -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-icon">💸</div>
+      <span class="logo-text">UPI Tracker</span>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn" id="btn-notif" title="Enable notifications">🔔</button>
+      <button class="header-btn" id="btn-export" title="Export data">📤</button>
+    </div>
+  </header>
+
+  <!-- ===== Notification Permission Banner ===== -->
+  <div class="notif-banner" id="notif-banner" style="margin: 16px 20px 0;">
+    <span style="font-size: 24px;">🔔</span>
+    <div class="notif-text">Enable notifications to get budget alerts when you're close to your spending limits.</div>
+    <button class="notif-btn" id="btn-enable-notif">Enable</button>
+  </div>
+
+  <!-- ===== Dashboard Page ===== -->
+  <section class="page active" id="page-dashboard">
+    <!-- Hero Card -->
+    <div class="hero-card" id="dashboard-hero">
+      <div class="hero-label">Today's Spending</div>
+      <div class="hero-amount" id="today-total">₹0</div>
+      <div class="hero-sub" id="today-count">No expenses yet</div>
+      <canvas class="hero-sparkline" id="hero-sparkline"></canvas>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+      <div class="card stat-card" id="stat-week">
+        <div class="stat-icon">📅</div>
+        <div class="stat-value" id="week-total">₹0</div>
+        <div class="stat-label">This Week</div>
+      </div>
+      <div class="card stat-card" id="stat-month">
+        <div class="stat-icon">📊</div>
+        <div class="stat-value" id="month-total">₹0</div>
+        <div class="stat-label">This Month</div>
+      </div>
+    </div>
+
+    <!-- Budget Progress -->
+    <div id="dashboard-budgets">
+      <div class="section-title">
+        Budget Status
+        <button class="see-all" id="btn-goto-budgets">Manage →</button>
+      </div>
+      <div id="budget-progress-list">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+
+    <!-- Recent Expenses -->
+    <div class="mb-20" style="margin-top: 20px;">
+      <div class="section-title">
+        Recent Expenses
+        <button class="see-all" id="btn-goto-expenses">View All →</button>
+      </div>
+      <div id="recent-expenses-list">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Expenses Page ===== -->
+  <section class="page" id="page-expenses">
+    <div class="expense-filters" id="expense-filters">
+      <button class="filter-chip active" data-filter="all">All</button>
+      <button class="filter-chip" data-filter="today">Today</button>
+      <button class="filter-chip" data-filter="week">This Week</button>
+      <button class="filter-chip" data-filter="month">This Month</button>
+    </div>
+    <div id="expenses-list">
+      <!-- Dynamically rendered -->
+    </div>
+  </section>
+
+  <!-- ===== Budgets Page ===== -->
+  <section class="page" id="page-budgets">
+    <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 20px;">Budget Manager</h2>
+    <div id="budgets-list">
+      <!-- Dynamically rendered -->
+    </div>
+  </section>
+
+  <!-- ===== Analytics Page ===== -->
+  <section class="page" id="page-analytics">
+    <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 20px;">Analytics</h2>
+
+    <!-- Category Breakdown -->
+    <div class="card chart-container mb-20">
+      <div class="section-title" style="margin-bottom: 8px;">Category Breakdown</div>
+      <canvas class="chart-canvas donut" id="chart-donut"></canvas>
+      <div class="chart-legend" id="chart-legend"></div>
+    </div>
+
+    <!-- Daily Spending Chart -->
+    <div class="card chart-container mb-20">
+      <div class="section-title" style="margin-bottom: 8px;">Daily Spending (Last 7 Days)</div>
+      <canvas class="chart-canvas" id="chart-bar"></canvas>
+    </div>
+
+    <!-- Top Categories -->
+    <div class="card mb-20">
+      <div class="section-title" style="margin-bottom: 8px;">Top Categories</div>
+      <div id="top-categories">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FAB ===== -->
+  <button class="fab" id="fab-add" title="Add expense">+</button>
+
+  <!-- ===== Bottom Navigation ===== -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-page="dashboard">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" data-page="expenses">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Expenses</span>
+    </button>
+    <button class="nav-item" data-page="budgets">
+      <span class="nav-icon">🎯</span>
+      <span class="nav-label">Budgets</span>
+    </button>
+    <button class="nav-item" data-page="analytics">
+      <span class="nav-icon">📈</span>
+      <span class="nav-label">Analytics</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- ===== Add/Edit Expense Modal ===== -->
+<div class="modal-overlay" id="modal-expense">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 class="modal-title" id="expense-modal-title">Add Expense</h3>
+
+    <form id="expense-form">
+      <!-- Amount -->
+      <div class="form-group">
+        <label class="form-label">Amount</label>
+        <div class="amount-input-wrapper">
+          <input type="number" class="form-input" id="input-amount" placeholder="0" step="0.01" required inputmode="decimal">
+        </div>
+      </div>
+
+      <!-- Category -->
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <div class="category-grid" id="category-grid">
+          <button type="button" class="category-option" data-category="food">
+            <span class="cat-emoji">🍔</span>
+            <span>Food</span>
+          </button>
+          <button type="button" class="category-option" data-category="transport">
+            <span class="cat-emoji">🚗</span>
+            <span>Transport</span>
+          </button>
+          <button type="button" class="category-option" data-category="shopping">
+            <span class="cat-emoji">🛍️</span>
+            <span>Shopping</span>
+          </button>
+          <button type="button" class="category-option" data-category="bills">
+            <span class="cat-emoji">📄</span>
+            <span>Bills</span>
+          </button>
+          <button type="button" class="category-option" data-category="entertainment">
+            <span class="cat-emoji">🎬</span>
+            <span>Fun</span>
+          </button>
+          <button type="button" class="category-option" data-category="health">
+            <span class="cat-emoji">💊</span>
+            <span>Health</span>
+          </button>
+          <button type="button" class="category-option" data-category="recharge">
+            <span class="cat-emoji">📱</span>
+            <span>Recharge</span>
+          </button>
+          <button type="button" class="category-option" data-category="others">
+            <span class="cat-emoji">📦</span>
+            <span>Others</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Merchant / Description -->
+      <div class="form-group">
+        <label class="form-label">Paid To / Description</label>
+        <input type="text" class="form-input" id="input-merchant" placeholder="e.g. Swiggy, Amazon, Rent...">
+      </div>
+
+      <!-- UPI App -->
+      <div class="form-group">
+        <label class="form-label">UPI App</label>
+        <div class="upi-app-row" id="upi-app-row">
+          <button type="button" class="upi-chip" data-upi="GPay">💚 GPay</button>
+          <button type="button" class="upi-chip" data-upi="PhonePe">💜 PhonePe</button>
+          <button type="button" class="upi-chip" data-upi="Paytm">🔵 Paytm</button>
+          <button type="button" class="upi-chip" data-upi="CRED">⚫ CRED</button>
+          <button type="button" class="upi-chip" data-upi="Other">📲 Other</button>
+        </div>
+      </div>
+
+      <!-- Date & Time -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="input-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Time</label>
+          <input type="time" class="form-input" id="input-time">
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <input type="text" class="form-input" id="input-notes" placeholder="Any additional notes...">
+      </div>
+
+      <button type="submit" class="btn-primary" id="btn-save-expense">💾 Save Expense</button>
+      <button type="button" class="btn-danger hidden" id="btn-delete-expense">🗑️ Delete Expense</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Budget Set Modal ===== -->
+<div class="modal-overlay" id="modal-budget">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 class="modal-title">Set Budget</h3>
+
+    <form id="budget-form">
+      <div class="form-group">
+        <label class="form-label">Budget Period</label>
+        <div class="budget-type-selector" id="budget-type-selector">
+          <button type="button" class="budget-type-btn" data-budget-type="daily">📅 Daily</button>
+          <button type="button" class="budget-type-btn" data-budget-type="weekly">📆 Weekly</button>
+          <button type="button" class="budget-type-btn" data-budget-type="monthly">🗓️ Monthly</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Budget Amount</label>
+        <div class="amount-input-wrapper">
+          <input type="number" class="form-input" id="input-budget-amount" placeholder="0" step="1" required inputmode="numeric">
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary">💰 Set Budget</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Toast ===== -->
+<div class="toast" id="toast"></div>
+
+<!-- ===== Scripts ===== -->
+<script src="db.js"></script>
+<script src="charts.js"></script>
+<script src="notifications.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
