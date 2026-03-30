@@ -2,16 +2,19 @@
 // Service Worker — UPI Expense Tracker PWA
 // =============================================
 
-const CACHE_NAME = 'upi-tracker-v1';
+// Bump version to force cache refresh on deploy
+const CACHE_NAME = 'upi-tracker-v2';
+
+// Use relative paths so the SW works regardless of deployment subdirectory
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/db.js',
-  '/charts.js',
-  '/notifications.js',
-  '/manifest.json',
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './db.js',
+  './charts.js',
+  './notifications.js',
+  './manifest.json',
 ];
 
 // Install — cache app shell
@@ -36,12 +39,35 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch — cache-first strategy
+// Fetch — network-first for navigation, cache-first for assets
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // For navigation requests (HTML pages), use network-first
+  // This prevents stale cached routes from causing 404s
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache the fresh response
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clone);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Offline fallback — serve cached index.html
+          return caches.match('./index.html');
+        })
+    );
+    return;
+  }
+
+  // For other requests (CSS, JS, images), use cache-first
   event.respondWith(
     caches.match(event.request).then((cached) => {
       return cached || fetch(event.request).then((response) => {
-        // Cache successful responses for future use
         if (response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -50,10 +76,8 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       }).catch(() => {
-        // Offline fallback
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
+        // Nothing we can do for non-navigation requests offline
+        return new Response('Offline', { status: 503 });
       });
     })
   );
@@ -67,7 +91,8 @@ self.addEventListener('notificationclick', (event) => {
       if (clients.length > 0) {
         clients[0].focus();
       } else {
-        self.clients.openWindow('/');
+        // Use registration scope to open the correct URL
+        self.clients.openWindow(self.registration.scope);
       }
     })
   );

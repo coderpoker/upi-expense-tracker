@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Redirecting — UPI Expense Tracker</title>
+  <script>
+    // GitHub Pages SPA redirect hack
+    // When a user navigates directly to a route that doesn't exist as a file,
+    // GitHub Pages serves this 404.html. We redirect back to index.html.
+    var repo = '/upi-expense-tracker/';
+    var path = window.location.pathname;
+    
+    // If already at index, don't redirect (prevents loop)
+    if (path === repo || path === repo + 'index.html') {
+      document.write('<p>Page not found. <a href="' + repo + '">Go home</a></p>');
+    } else {
+      window.location.replace(repo);
+    }
+  </script>
+</head>
+<body>
+  <p>Redirecting...</p>
+</body>
+</html>
